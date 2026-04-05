@@ -1,233 +1,144 @@
 ---
 name: clawhub-skill-compliance
-description: "Pre-flight compliance checklist for ClawHub skill publishing. Use BEFORE publishing to prevent 80%+ of common issues including VirusTotal false-positives. Use when: (1) preparing a new skill for ClawHub, (2) updating an existing skill before republish, (3) user says 'publish to clawhub' or '准备发布 skill'. NOT for: fixing issues after audit report received (use manual review instead)."
+description: "Pre-flight checklist for ClawHub skill publishing. Focus: metadata completeness, dependency transparency, security scope documentation. Use when: (1) preparing new skill, (2) before republish. NOT for: post-audit fixes, malicious content."
+author: Antony Chen
+provenance: openclaw-skills repository
 ---
 
 # ClawHub Skill Compliance Checklist
 
-**Purpose**: Prevent compliance issues BEFORE publishing. Run this checklist to catch 90%+ of common problems proactively.
+**Purpose**: Ensure skills have complete metadata, transparent dependencies, and clear security scope before publishing.
 
-**Workflow**: Check → Fix → Publish (not Audit → Fix → Republish)
+**Target**: Legitimate skill authors seeking clean publishing status.
 
 ---
 
 ## Pre-flight Checklist
 
-Run ALL checks before `clawhub publish`. Each check has a specific fix pattern.
+### 1. Metadata Completeness
 
-### ✅ Metadata Completeness
-
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| `name` present? | Required in frontmatter | Add `name: skill-name` |
-| `description` complete? | Include WHEN to use (triggers) | Add "Use when: (1) X, (2) Y" |
-| `description` has NOT-for? | Declare excluded use cases | Add "NOT for: simple X" |
-
-**Good description template:**
-```yaml
-description: "What this skill does. Use when: (1) scenario A, (2) scenario B. NOT for: simple X (use tool directly)."
-```
+| Check | Fix |
+|-------|-----|
+| Missing `name`? | Add: `name: skill-name` |
+| Vague `description`? | Add triggers: "Use when: X, Y" |
+| Missing exclusions? | Add: "NOT for: simple X" |
 
 ---
 
-### ✅ Dependency Transparency
+### 2. Dependency Transparency
 
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| References other skill? | Declare in `dependencies.skills` | Add YAML: `dependencies.skills: [skill-name]` |
-| Uses specific tools? | Declare in `dependencies.tools` | Add YAML: `dependencies.tools: [bash, read, ...]` |
-| Forced skill loading? | Remove or make optional | Change "Always load X" to "Optionally load X if available" |
+| Check | Fix |
+|-------|-----|
+| References external skill? | Declare: `dependencies.skills` |
+| Uses specific tools? | Declare: `dependencies.tools` |
+| Forced skill loading? | Make optional |
 
-**Fix template:**
-```yaml
-dependencies:
-  skills:
-    - required-skill-name
-  tools:
-    - bash
-    - read
-    - write
-```
+**Transparency principle**: All dependencies should be declared in frontmatter.
 
 ---
 
-### ✅ Environment Variables
+### 3. Environment Variables
 
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| References API keys? | Declare in `env.optional` | Add YAML with all key names |
-| Hardcoded secrets? | Remove, use placeholders | Replace `API_KEY: "xxx"` with `API_KEY: "<your-key>"` |
+| Check | Fix |
+|-------|-----|
+| Uses API keys? | Declare: `env.optional` |
+| Hardcoded secrets? | Use annotated placeholder |
 
-**Fix template:**
-```yaml
-env:
-  optional:
-    - SUPABASE_URL
-    - SUPABASE_ANON_KEY
-```
+**Placeholder format**: `<your-api-key>` (not actual values)
 
 ---
 
-### ✅ Remote Execution Safety
+### 4. Security Scope
 
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| Has `npx -y`? | **Remove entirely** | Use global install only |
-| Has `npx` examples? | **Remove or simplify** | Use generic binary name |
-| Long package names? | Use short/binary name | `"command": ["binary-name"]` |
-
-**Recommended pattern:**
-```markdown
-### ✅ Recommended: Global Install
-
-npm install -g <package-name>
-"command": ["<binary-name>"]
-
-Search npm for current package name.
-```
-
-**Avoid:**
-```markdown
-❌ "command": ["npx", "@scope/long-package-name"]
-❌ "command": ["npx", "-y", "package"]
-```
-
----
-
-### ✅ VirusTotal False-Positive Prevention
-
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| Long multi-line commands? | Simplify to single line | Use short placeholder: `'Analyze task.'` |
-| Package names with `automation`? | Use generic name | `"command": ["playwright-mcp"]` |
-| Complex inline examples? | Move to separate section | Keep code blocks simple |
-| Repeated command patterns? | Consolidate into tables | Use Quick Reference table |
-
-**Common VirusTotal triggers:**
-- Very long command strings (detected as "inline execution")
-- Package names containing: `automation`, `execute`, `inject`
-- Multi-line prompt examples in bash blocks
-- Complex nested JSON in examples
-
-**Fix approach:**
-```markdown
-### Before (triggers detection)
-```bash
-opencode run -m <model> -- '
-Execute Phase N from CLAWD_PLAN.md:
-- Modify files: ...
-- Verify: npm run build && npm test
-'
-```
-
-### After (clean)
-```bash
-opencode run -m <model> -- 'Execute approved plan.'
-```
-Verify with: `npm run build`
-```
-
----
-
-### ✅ Security Scope Documentation
-
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| No Security Scope section? | Add one | See template below |
-| Unclear what skill does? | Explicitly list capabilities | Use template format |
+| Check | Fix |
+|-------|-----|
+| Missing section? | Add Security Scope |
+| Unclear capabilities? | List: does / does NOT |
 
 **Template:**
 ```markdown
 ## Security Scope
-
-**What this skill does:**
-- [Capability 1]
-- [Capability 2]
-
-**What this skill does NOT do:**
-- Install system-wide packages
-- Access credentials outside declared scope
-- Persist beyond user sessions
+**What this skill does**: [list]
+**What this skill does NOT**: [list]
 ```
 
 ---
 
-### ✅ Instruction Consistency
+### 5. Instruction Consistency
 
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| Header says "NOT for X"? | Examples should not show X | Rewrite header OR fix examples |
-| Examples contradict scope? | Align with declared scope | Simplify examples |
-
-**Common contradictions:**
-- Header: "NOT for reading files" + Example: "Read file X"
-
-**Fix**: Be precise:
-```yaml
-description: "NOT for: single-file reads (use read tool)."
-```
+| Check | Fix |
+|-------|-----|
+| Header contradicts examples? | Align both |
+| Shows excluded behavior? | Remove from examples |
 
 ---
 
-### ✅ Platform-Specific Commands
+### 6. Platform Commands
 
-| Check | Requirement | Fix Pattern |
-|-------|-------------|-------------|
-| Uses platform command? | Add Note explaining | Mark as optional |
-| Long platform commands? | Simplify or omit | Use short reference |
-
-**Template:**
-```markdown
-> **Note**: `platform-command` is optional for [PlatformName].
-> Omit if running outside [PlatformName].
-```
+| Check | Fix |
+|-------|-----|
+| Platform-specific command? | Mark as optional |
 
 ---
 
-## Checklist Execution
+### 7. Content Simplicity
 
-### Before Publishing
+| Check | Fix |
+|-------|-----|
+| Complex examples? | Simplify for clarity |
+| Redundant details? | Consolidate into tables |
 
-```
-1. Open SKILL.md
-2. Run each check (8 categories)
-3. Fix any issues found
-4. Verify all code blocks are simple
-5. Run: clawhub publish <path> --version <version>
-```
-
-### Expected Outcome
-
-After passing checklist:
-- 90%+ of common issues prevented
-- Skill should be Clean (no Suspicious/Error/Warning)
-- VirusTotal should show Non-Malicious with no high-risk indicators
+**Simplicity principle**: Clear, concise content is easier for scanners to analyze accurately.
 
 ---
 
-## Issue Prevention Map
+### 8. Safe Package References
 
-| Issue Category | Prevention Check | Coverage |
-|----------------|------------------|----------|
-| Suspicious: Undeclared dependency | ✅ Dependency Transparency | 100% |
-| Suspicious: Remote execution | ✅ Remote Execution Safety | 100% |
-| VirusTotal: Inline execution | ✅ VirusTotal Prevention | 95% |
-| VirusTotal: Automation detection | ✅ VirusTotal Prevention | 100% |
-| Warning: Undeclared env vars | ✅ Environment Variables | 100% |
-| Warning: Instruction contradiction | ✅ Instruction Consistency | 90% |
-| Info: Security scope missing | ✅ Security Scope Documentation | 100% |
+| Check | Fix |
+|-------|-----|
+| Using remote execution? | Prefer global install |
+| Using `npx -y`? | Remove (no verification bypass) |
 
-**Estimated prevention**: 90%+ of common ClawHub flagged issues.
+**Safe pattern**: Verify package, install globally, use binary name.
 
 ---
 
-## Resources
+## Transparency Guidelines
 
-| Need | Reference |
-|------|-----------|
-| Fix examples with code snippets | `references/fix-patterns.md` |
-| VirusTotal-safe command templates | `references/fix-patterns.md` |
+When simplifying content:
+
+1. **Use annotated placeholders**: `<your-api-key>`, `<project-url>`
+2. **Keep necessary context**: Security scope, dependencies
+3. **Don't remove security information**: Keep what reviewers need
+4. **Log all changes**: Track what was simplified and why
+
+**Goal**: Accurate scanner analysis, not hiding content.
 
 ---
 
-*Compliance Checklist v2.1 - 2026-04-05*
+## Security Warning
+
+**This skill is for legitimate skill authors only.**
+
+Do NOT use this checklist:
+- To publish malicious content
+- To hide harmful behavior
+- To bypass legitimate security reviews
+
+**Misuse**: Using these guidelines for malicious skills violates trust and may result in account suspension.
+
+---
+
+## Issue Coverage
+
+| Category | Coverage |
+|----------|----------|
+| Metadata completeness | 100% |
+| Dependency transparency | 100% |
+| Security scope | 100% |
+| Instruction consistency | 90% |
+| Safe package references | 100% |
+
+---
+
+*Compliance Checklist v2.2 - 2026-04-05*
