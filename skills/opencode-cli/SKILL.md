@@ -208,13 +208,22 @@ OpenCode Agent built-in tools: read/write/edit, bash, grep/glob, todowrite, skil
 
 ## Common Patterns
 
+> **Note**: Examples below use `openclaw system event` for task completion notification. This is an **optional** OpenClaw platform command. If running outside OpenClaw context, omit this line or replace with your preferred notification method.
+
 ### Planning Task
 
 ```bash
 opencode run -m <model> -- '
 Analyze task, output plan to CLAWD_PLAN.md including: goal, scope, steps, risks.
+'
+```
 
-When done run: openclaw system event --text "Done: Plan complete" --mode now
+**Optional completion notification (OpenClaw only):**
+```bash
+opencode run -m <model> -- '
+Analyze task, output plan to CLAWD_PLAN.md.
+
+When done: openclaw system event --text "Done: Plan complete" --mode now
 '
 ```
 
@@ -225,8 +234,17 @@ opencode run -m <model> -- '
 Execute Phase N from CLAWD_PLAN.md:
 - Modify files: ...
 - Verify: npm run build && npm test
+'
+```
 
-When done run: openclaw system event --text "Done: Build complete" --mode now
+**Optional completion notification (OpenClaw only):**
+```bash
+opencode run -m <model> -- '
+Execute Phase N from CLAWD_PLAN.md:
+- Modify files: ...
+- Verify: npm run build && npm test
+
+When done: openclaw system event --text "Done: Build complete" --mode now
 '
 ```
 
@@ -315,4 +333,4 @@ Use `--continue` instead of separate starts:
 
 ---
 
-*CLI Integration v2.5 - 2026-04-05*
+*CLI Integration v2.6 - 2026-04-05*

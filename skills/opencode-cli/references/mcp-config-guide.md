@@ -31,50 +31,51 @@
 
 ## Security Considerations
 
-### ⚠️ Important: `npx` Package Execution
+### ⚠️ Critical: Remote Code Execution Risk
 
-The configurations below use `npx` to run MCP server packages. Be aware of the security implications:
+MCP servers run as separate processes. Configuration methods have different security profiles:
 
-| Flag | Behavior | Risk Level |
-|------|----------|------------|
-| `npx -y package` | Executes without confirmation | Higher - no verification prompt |
-| `npx package` | Prompts before first download | Lower - user confirms |
+| Method | Risk | Description |
+|--------|------|-------------|
+| **Global Install** | Low | Code verified once, runs locally |
+| **npx (no flags)** | Medium | Downloads code, prompts before first run |
+| **npx -y** | High | Downloads and executes without confirmation |
 
-### Recommended Security Practices
+### ✅ Recommended: Global Install
 
-1. **Verify package integrity** before first use
-   ```bash
-   # Check package details
-   npm view @executeautomation/playwright-mcp-server
-   
-   # Check for known vulnerabilities
-   npm audit @executeautomation/playwright-mcp-server
-   ```
+**Most secure approach** — verify package integrity once, then run locally:
 
-2. **Install globally for frequently used packages**
-   ```bash
-   # Install once, verify integrity
-   npm install -g @executeautomation/playwright-mcp-server
-   
-   # Then use installed binary (no npx needed)
-   "command": ["playwright-mcp-server"]
-   ```
+```bash
+# 1. Check package details
+npm view @executeautomation/playwright-mcp-server
 
-3. **Remove `-y` flag** to require confirmation before each download
-   ```json
-   "command": ["npx", "@executeautomation/playwright-mcp-server"]
-   ```
+# 2. Install globally
+npm install -g @executeautomation/playwright-mcp-server
 
-4. **Pin versions** for reproducibility
-   ```json
-   "command": ["npx", "@executeautomation/playwright-mcp-server@1.2.3"]
-   ```
+# 3. Configure with installed binary
+"command": ["playwright-mcp-server"]
+```
 
-5. **Never commit secrets** to version control
-   ```bash
-   # Add to .gitignore
-   echo ".opencode/opencode.json" >> .gitignore
-   ```
+**Benefits:**
+- Code verified at install time
+- No repeated downloads
+- No network dependency at runtime
+- Version pinned until explicit update
+
+### ⚠️ Alternative: npx (Use Only in Trusted Environments)
+
+**Convenience trade-off** — `npx` downloads and executes remote code:
+
+```bash
+# Downloads package on each run (or cached for a period)
+"command": ["npx", "@executeautomation/playwright-mcp-server"]
+```
+
+**If using npx:**
+1. Only in trusted, isolated environments
+2. Pin specific version: `@executeautomation/playwright-mcp-server@1.2.3`
+3. Never use `-y` flag (it bypasses confirmation)
+4. Verify package integrity before first use
 
 ### Environment Variables
 
@@ -90,15 +91,34 @@ MCP servers may require API keys or credentials. Store them securely:
 
 ### Playwright MCP (UI Automation Testing)
 
+#### Recommended (Global Install)
+
+```bash
+# Install
+npm install -g @executeautomation/playwright-mcp-server
+```
+
 ```json
 {
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": [
-        "npx",
-        "@executeautomation/playwright-mcp-server"
-      ]
+      "command": ["playwright-mcp-server"]
+    }
+  }
+}
+```
+
+#### Alternative (npx)
+
+> ⚠️ Only use in trusted environments. Downloads remote code.
+
+```json
+{
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@executeautomation/playwright-mcp-server@1.0.0"]
     }
   }
 }
@@ -116,25 +136,42 @@ MCP servers may require API keys or credentials. Store them securely:
 | `browser act` | Click/input operations |
 | `browser screenshot` | Screenshot comparison |
 
-**Global install option:**
-```bash
-npm install -g @executeautomation/playwright-mcp-server
-```
-Then use: `"command": ["playwright-mcp-server"]`
-
 ---
 
 ### Context7 MCP (Context Management)
+
+#### Recommended (Global Install)
+
+```bash
+# Install
+npm install -g @upstash/context7-mcp
+```
 
 ```json
 {
   "mcp": {
     "context7": {
       "type": "local",
-      "command": [
-        "npx",
-        "@upstash/context7-mcp@latest"
-      ],
+      "command": ["context7-mcp"],
+      "environment": {
+        "CONTEXT7_API_KEY": "<your-api-key>",
+        "DEFAULT_MINIMUM_TOKENS": "10000"
+      }
+    }
+  }
+}
+```
+
+#### Alternative (npx)
+
+> ⚠️ Only use in trusted environments. Downloads remote code.
+
+```json
+{
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["npx", "@upstash/context7-mcp"],
       "environment": {
         "CONTEXT7_API_KEY": "<your-api-key>",
         "DEFAULT_MINIMUM_TOKENS": "10000"
@@ -156,6 +193,13 @@ Then use: `"command": ["playwright-mcp-server"]`
 
 ### Supabase MCP (Database)
 
+#### Recommended (Global Install)
+
+```bash
+# Install
+npm install -g @supabase/mcp-server-supabase
+```
+
 **Config file:** `<project>/.opencode/opencode.json`
 
 ```json
@@ -163,10 +207,26 @@ Then use: `"command": ["playwright-mcp-server"]`
   "mcp": {
     "supabase": {
       "type": "local",
-      "command": [
-        "npx",
-        "@supabase/mcp-server-supabase"
-      ],
+      "command": ["mcp-server-supabase"],
+      "environment": {
+        "SUPABASE_URL": "<your-project-url>",
+        "SUPABASE_ANON_KEY": "<your-anon-key>"
+      }
+    }
+  }
+}
+```
+
+#### Alternative (npx)
+
+> ⚠️ Only use in trusted environments. Downloads remote code.
+
+```json
+{
+  "mcp": {
+    "supabase": {
+      "type": "local",
+      "command": ["npx", "@supabase/mcp-server-supabase"],
       "environment": {
         "SUPABASE_URL": "<your-project-url>",
         "SUPABASE_ANON_KEY": "<your-anon-key>"
@@ -197,17 +257,19 @@ Then use: `"command": ["playwright-mcp-server"]`
 
 ### Global Config (~/.config/opencode/opencode.json)
 
+> Using recommended global install method
+
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["npx", "@executeautomation/playwright-mcp-server"]
+      "command": ["playwright-mcp-server"]
     },
     "context7": {
       "type": "local",
-      "command": ["npx", "@upstash/context7-mcp@latest"],
+      "command": ["context7-mcp"],
       "environment": {
         "CONTEXT7_API_KEY": "<your-api-key>"
       }
@@ -218,12 +280,14 @@ Then use: `"command": ["playwright-mcp-server"]`
 
 ### Project Config (<project>/.opencode/opencode.json)
 
+> Using recommended global install method
+
 ```json
 {
   "mcp": {
     "supabase": {
       "type": "local",
-      "command": ["npx", "@supabase/mcp-server-supabase"],
+      "command": ["mcp-server-supabase"],
       "environment": {
         "SUPABASE_URL": "https://xxx.supabase.co",
         "SUPABASE_ANON_KEY": "eyJ..."
@@ -257,10 +321,11 @@ OpenCode looks for `.opencode/opencode.json` from **current working directory**.
 ## Adding New MCP
 
 1. Find MCP Server package name (e.g., `@modelcontextprotocol/server-filesystem`)
-2. Verify package integrity: `npm view <package>` and `npm audit <package>`
-3. Add to `mcp` object in config file
-4. Set required environment variables securely
-5. Restart OpenCode or start new session
+2. **Verify package integrity**: `npm view <package>` and check for vulnerabilities
+3. **Recommended**: Install globally with `npm install -g <package>`
+4. Add to `mcp` object in config file using installed binary name
+5. Set required environment variables securely
+6. Restart OpenCode or start new session
 
 ---
 
@@ -275,6 +340,7 @@ OpenCode looks for `.opencode/opencode.json` from **current working directory**.
 2. Is JSON format valid?
 3. Are environment variables set?
 4. Are you running in project root?
+5. Is the MCP binary installed globally?
 
 ### Debug MCP
 
@@ -284,8 +350,11 @@ opencode mcp list
 
 # Test MCP connection
 opencode mcp debug <name>
+
+# Check if binary is installed
+which playwright-mcp-server
 ```
 
 ---
 
-*Configuration Guide v1.1 - 2026-04-05*
+*Configuration Guide v1.2 - 2026-04-05*
