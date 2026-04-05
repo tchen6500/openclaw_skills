@@ -1,6 +1,20 @@
 ---
 name: opencode-cli
-description: "OpenCode CLI integration skill. Designed for AI agents like OpenClaw to execute coding tasks via OpenCode CLI. Core features: (1) Plan→Build workflow (2) Session management (3) MCP integration (4) Background task monitoring. NOT for: simple one-line edits (use edit tool), reading files (use read tool)."
+description: "OpenCode CLI integration skill. Designed for AI agents like OpenClaw to execute coding tasks via OpenCode CLI. Core features: (1) Plan→Build workflow (2) Session management (3) MCP integration (4) Background task monitoring. Use this skill when you need: multi-step coding, Plan→Build workflow, MCP integration, or background task monitoring. NOT for: simple one-line edits (use edit tool directly), quick file reads (use read tool directly)."
+dependencies:
+  skills:
+    - using-superpowers
+  tools:
+    - bash
+    - read
+    - write
+    - edit
+    - process
+env:
+  optional:
+    - CONTEXT7_API_KEY
+    - SUPABASE_URL
+    - SUPABASE_ANON_KEY
 ---
 
 # OpenCode CLI Integration
@@ -11,15 +25,34 @@ OpenCode is an AI-powered code editor CLI. When called via OpenClaw, **only CLI 
 
 ---
 
+## Security Scope
+
+**What this skill does:**
+- Integrates with OpenCode CLI for coding tasks
+- Manages sessions, plans, and builds
+- Optionally connects to configured MCP servers (Playwright, Supabase, Context7)
+
+**What this skill does NOT do:**
+- Install or modify system-wide packages
+- Access credentials outside configured MCP servers
+- Persist beyond user-initiated sessions
+
+**Credential access:**
+- MCP servers (if configured) may use environment variables like `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CONTEXT7_API_KEY`
+- Skills run in project context; avoid committing secrets to version control
+- Only use this skill in repositories/environments you trust
+
+---
+
 ## Core Command
 
 ```bash
 opencode run -m <provider/model> -- "<prompt>"
 ```
 
-**Recommended format:**
+**Example:**
 ```bash
-opencode run -m <provider/model> -- 'First load using-superpowers skill. <task description>'
+opencode run -m <provider/model> -- "Add error handling to the login function"
 ```
 
 ---
@@ -31,12 +64,12 @@ opencode run -m <provider/model> -- 'First load using-superpowers skill. <task d
 **Correct approach:**
 ```bash
 # 1. Start Plan (creates session)
-opencode run -m <model> -- 'First load using-superpowers skill. Analyze task, output plan.'
+opencode run -m <model> -- 'Analyze task, output plan.'
 
 # 2. Wait for user APPROVE
 
 # 3. Switch to Build (continue same session)
-opencode run --continue --agent build -- 'First load using-superpowers skill. Implement approved plan.'
+opencode run --continue --agent build -- 'Implement approved plan.'
 ```
 
 **Wrong approach (context lost):**
@@ -81,14 +114,14 @@ opencode session delete <id>
 ### Standard Task (≤5 minutes)
 
 ```bash
-opencode run -m <model> -- 'First load using-superpowers skill. <task>'
+opencode run -m <model> -- '<task>'
 ```
 
 ### Background Task (>5 minutes)
 
 ```bash
 # Start
-opencode run -m <model> -- 'First load using-superpowers skill. <task>'
+opencode run -m <model> -- '<task>'
 
 # Monitor (every 30-60s)
 process action:poll sessionId:<id> timeout:30000
@@ -179,8 +212,6 @@ OpenCode Agent built-in tools: read/write/edit, bash, grep/glob, todowrite, skil
 
 ```bash
 opencode run -m <model> -- '
-First load using-superpowers skill.
-
 Analyze task, output plan to CLAWD_PLAN.md including: goal, scope, steps, risks.
 
 When done run: openclaw system event --text "Done: Plan complete" --mode now
@@ -191,8 +222,6 @@ When done run: openclaw system event --text "Done: Plan complete" --mode now
 
 ```bash
 opencode run -m <model> -- '
-First load using-superpowers skill.
-
 Execute Phase N from CLAWD_PLAN.md:
 - Modify files: ...
 - Verify: npm run build && npm test
@@ -206,8 +235,6 @@ When done run: openclaw system event --text "Done: Build complete" --mode now
 ```bash
 cd /path/to/project
 opencode run -m <model> -- '
-First load using-superpowers skill.
-
 Use Supabase MCP for database operations:
 - ...
 '
@@ -217,8 +244,6 @@ Use Supabase MCP for database operations:
 
 ```bash
 opencode run -m <model> -- '
-First load using-superpowers skill.
-
 Use Playwright MCP for UI testing:
 - browser snapshot get page state
 - browser act click/input operations
@@ -261,8 +286,8 @@ Use `--continue` instead of separate starts:
 
 | Task | Command |
 |------|---------|
-| Plan task | `opencode run -m <model> -- 'First load using-superpowers skill. Analyze...'` |
-| Build (continue session) | `opencode run --continue --agent build -- 'First load...'` |
+| Plan task | `opencode run -m <model> -- 'Analyze...'` |
+| Build (continue session) | `opencode run --continue --agent build -- 'Implement...'` |
 | Continue last session | `opencode run --continue` |
 | Specific session | `opencode run --session <id>` |
 | Fork session | `opencode run --continue --fork` |
@@ -290,4 +315,4 @@ Use `--continue` instead of separate starts:
 
 ---
 
-*CLI Integration v2.4 - 2026-04-05*
+*CLI Integration v2.5 - 2026-04-05*
